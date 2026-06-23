@@ -2071,6 +2071,6 @@ void SkywatcherAPIMount::getGuidePulses(double &az, double &alt)
         ++Iter;
     }
 
-    az = DeltaAlt;
-    alt = DeltaAz;
+    az = DeltaAz;
+    alt = DeltaAlt;
 }
