@@ -1021,25 +1021,30 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
 
     m_IterativeGOTOPending = false;
 
-    if (!CheckForDuplicateSyncPoint(NewEntry))
-    {
-        GetAlignmentDatabase().push_back(NewEntry);
+    // A re-sync at (or near) an existing telescope position must REFINE the model,
+    // not be rejected. Each entry stores the mount's physical telescope-direction
+    // vector, so repeated syncs from the same/nearby pointing (as EKOS issues during
+    // plate-solve recentering) otherwise match CheckForDuplicateSyncPoint and are
+    // refused, leaving the model stuck at a single point. Remove any near-duplicate
+    // first (RemoveSyncPoint uses the same proximity test and is a safe no-op when
+    // nothing matches), then commit the fresh point so it replaces the stale one;
+    // genuinely distinct positions still accumulate.
+    RemoveSyncPoint(NewEntry);
+    GetAlignmentDatabase().push_back(NewEntry);
 
-        // Tell the client about size change
-        UpdateSize();
+    // Tell the client about size change
+    UpdateSize();
 
-        // Tell the math plugin to reinitialise
-        Initialise(this);
+    // Tell the math plugin to reinitialise
+    Initialise(this);
 
-        // Force read before restarting
-        ReadScopeStatus();
+    // Force read before restarting
+    ReadScopeStatus();
 
-        // The tracking seconds should be reset to restart the drift compensation
-        resetTracking();
+    // The tracking seconds should be reset to restart the drift compensation
+    resetTracking();
 
-        return true;
-    }
-    return false;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
